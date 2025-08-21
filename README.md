@@ -5,9 +5,7 @@ Temelde kullanıcıların anlık mesajlaşmasına olanak sağlar.
 
 FRONTEND İÇİN BİR SUNUCU GEREKEBİLİR! (önerilen: apache http server)
 
----
-
-## 🚀 Özellikler
+# 🚀 Özellikler
 - Gerçek zamanlı sohbet 💬
 - Yetkilendirme sistemi 🔒
 - Masterserver bağlantısı ile sunucu tarayıcısı 🌐
@@ -19,14 +17,11 @@ FRONTEND İÇİN BİR SUNUCU GEREKEBİLİR! (önerilen: apache http server)
 - Komut desteği (WIP) 🪄
 - Eklenti desteği (WIP) 🧩
 
----
-
-# Gereksinimler
+## Gereksinimler
 1. Python >= 3.13 (opsiyonel)
 2. node.js >= 22.17.1
 3. bir web sunucusu (apache http server ,nginx)
-
-# Nasıl Çalıştırılır?
+## Nasıl Çalıştırılır?
 1. Projeyi indirin.
 2. helper.js de ve node/server.js dosyasındaki ip ve portları masterserver'i beltirtecek şekilde düzeltin.
 3. Masterserver'i çalıştırın. (opsiyonel, websocket kütüphanesi kullanıyor.)
