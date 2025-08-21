@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Sunucu Listesi</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.server-list {
+    max-width: 500px;
+    margin: 50px auto;
+    background: #1e1e1e;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 0 10px #000;
+}
+.server-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #2b2b2b;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+.server-info {
+    display: flex;
+    flex-direction: column;
+}
+.server-name {
+    font-weight: bold;
+    color: #4cafef;
+}
+.server-ip {
+    font-size: 12px;
+    color: #ccc;
+}
+.server-item button {
+    padding: 8px 12px;
+    background: #4cafef;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+.server-item button:hover {
+    background: #3a9cdc;
+}
+
+#ipgirisi, #portgirisi {
+    width: 38%;
+    padding: 8px;
+    margin-top: 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+.digerkatil {
+    padding: 8px 12px;
+    background: #4cafef;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+</style>
+</head>
+<body>
+    <div class="server-list">
+        <h2>🌐 Sunucu Listesi</h2>
+        <div id="serverContainer">Sunucu listesi yükleniyor...</div>
+    </div>
+
+<script>
+// Master server bilgisi (sabit)
+const MASTER_SERVER = "ws://192.168.1.5:4000"; // Örnek IP ve port
+let ws = new WebSocket(MASTER_SERVER);
+
+ws.onopen = () => {
+    console.log("Master server'a bağlandı");
+    // Sunucu listesi talep et
+    ws.send(JSON.stringify({ type: "getServers" }));
+};
+
+ws.onmessage = (msg) => {
+    const data = JSON.parse(msg.data);
+
+    if (data.type === "serverList") {
+        renderServerList(data.servers);
+    }
+};
+    const ozelsunucu = document.createElement("div");
+    ozelsunucu.innerHTML = `
+        <input type="text" id="ipgirisi" placeholder="Sunucu IP'si">
+<input type="text" id="portgirisi" placeholder="Sunucu portu"> <button class="digerkatil" onclick="connectToServer(0,0)">Bağlan</button>
+    `;
+ws.onerror = (err) => {
+    const container = document.getElementById("serverContainer");
+
+    console.error("Master server bağlantı hatası", err);
+    container.innerHTML = "<p>Sunucu listesi yüklenemedi. Lütfen daha sonra tekrar deneyin.</p>";
+    container.appendChild(ozelsunucu);
+};
+
+function renderServerList(servers) {
+    const container = document.getElementById("serverContainer");
+    container.innerHTML = "";
+
+    if (!servers.length) {
+        container.innerHTML = "<p>Aktif sunucu bulunamadı.</p>";
+        container.appendChild(ozelsunucu);
+        return;
+    }
+
+    servers.forEach(server => {
+        const div = document.createElement("div");
+        div.classList.add("server-item");
+
+        div.innerHTML = `
+            <div class="server-info">
+                <div class="server-name">${server.name}</div>
+                <div class="server-ip">${server.ip}:${server.port}</div>
+            </div>
+            <button onclick="connectToServer('${server.ip}', ${server.port})">Bağlan</button>
+        `;
+
+        container.appendChild(div);
+    });
+
+    container.appendChild(ozelsunucu);
+}
+
+function connectToServer(ip, port) {
+    if (ip == 0 && port == 0) {
+        const ipInput = document.getElementById("ipgirisi").value.trim();
+        const portInput = document.getElementById("portgirisi").value.trim();
+        if (!ipInput || !portInput) {
+            alert("Lütfen geçerli bir IP ve port girin.");
+            return;
+        }
+        ip = ipInput;
+        port = portInput;
+        alert("Özel sunucuya bağlanılıyor: " + ip + ":" + port);
+    }
+    const serverAddress = `${ip}:${port}`;
+    sessionStorage.setItem("chatServer", serverAddress);
+    alert(`Bağlantı için sunucu seçildi: ${serverAddress}`);
+    window.location.href = "index.html"; // Sohbet sayfasına yönlendir
+}
+</script>
+
+
+</body>
+</html>

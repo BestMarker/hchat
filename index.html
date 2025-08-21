@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Sohbet</title>
+<link rel="stylesheet" href="style.css?v=2">
+</head>
+<style>
+#context-menu {
+  background-color: #1f1f1f;
+  max-width: 150px;
+  max-height: 200px;
+  border-radius: 10px;
+  padding: 10px;
+  z-index: 99999999;
+}
+.item {
+  padding: 5px;
+  color: #aaa;
+  font-size: larger;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  font-style: normal;
+}
+.item:hover {
+  color: #fff;
+  cursor:grab;
+}
+</style>
+<script>isindex = true;</script>
+<body>
+    <div id="context-menu">
+      <div class="item" id="editmsg">
+        <i>Edit - WIP</i>
+      </div>
+      <div class="item" id="deletemsg" onclick="delmsg()">
+        <i>Delete</i>
+      </div>
+      <hr>
+      <div class="item" id="closebuton" onclick="document.getElementById('context-menu').style.display='none'">
+        <i>Close</i>
+      </div>
+    </div>
+  </body>
+<header class="chat-header">
+    <div class="header-left">
+        <div class="chat-title" id="sunucuismi">💬 Chat</div>
+        <button class="header-button" onclick="reset()">🌐 Sunucu Seçici</button>
+    </div>
+    <div id="ism" class="user-name"></div>
+    <div id="cbum" class="ping-status"></div>
+</header>
+
+    <main id="chat" class="chat-window"></main>
+
+    <footer class="chat-footer">
+        <input type="text" id="mesajInput" placeholder="Mesaj yaz..." onkeydown="if(event.key==='Enter'){sendmsg(); this.value='';}">
+        <button onclick="sendmsg(); document.getElementById('mesajInput').value=''">Gönder</button>
+    </footer>
+
+    <script src="helper.js?v=5"></script>
+    <script>
+        var secilenid;
+        var contextelement = document.getElementById("context-menu");
+            contextelement.style.display = "none";
+            contextelement.style.position = "absolute";
+        window.addEventListener("contextmenu", function(event){
+            event.preventDefault(); 
+            secilenid = event.target.id;
+            if (secilenid !== "" && secilenid === "usnm" || secilenid === "msgx") {
+                secilenid = event.target.parentElement.id;
+            }
+            else {
+                contextelement.style.display = "none";
+                return;
+            }
+            console.log(secilenid);
+            contextelement.style.top = event.clientY + "px";
+            contextelement.style.left = event.clientX + "px";
+            contextelement.style.display = "block";
+        }
+        )
+
+        document.getElementById("sunucuismi").innerText = "💬 " + sessionStorage.getItem("servername") || "💬 Chat";
+        const pinger = setInterval(ping, 2000);
+    </script>
+</body>
+</html>
