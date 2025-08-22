@@ -1,5 +1,6 @@
 let ws;
-
+const versaion = "0.2.0";
+const software = "HChat vanilla 1.2.0";
 // Tarayıcı bildirim izni
 Notification.requestPermission();
 
@@ -37,6 +38,17 @@ function delmsg() {
             msgdata: "/sil " + secilenid,
         }));
     }
+}
+function editmsg() {
+    document.getElementById("context-menu").style.display = "none";
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+            type: 'sendmsg',
+            mytoken: sessionStorage.getItem("token"),
+            msgdata: "/duzenle " + secilenid + " " + document.getElementById("mesajInput").value
+        }));
+    }
+    document.getElementById('mesajInput').value='';
 }
 
 function reset() {
@@ -133,9 +145,12 @@ function handleMessage(msg) {
 
         case 'msg-sil':
             silinecek = data.msgid;
-            console.log("Silinecek mesaj ID:", silinecek);
         
             document.getElementById(silinecek).parentElement.remove();
+            break;
+        case 'msg-duzenle':
+            degsien = data.msgid;
+            document.getElementById(degsien).children[1].innerText = data.newmsg;
             break;
 
         case 'login-no':

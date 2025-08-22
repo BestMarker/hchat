@@ -21,18 +21,30 @@
     padding: 10px;
     border-radius: 8px;
     margin-bottom: 10px;
+    height: 100px;
+}
+.server-desc {
+    font-size: 18px;
+    color: #b3e5fc;
+    margin: 6px 0;
 }
 .server-info {
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    width: 70%;
 }
 .server-name {
     font-weight: bold;
+    font-size: x-large;
     color: #4cafef;
+    margin-bottom: 2px;
 }
 .server-ip {
     font-size: 12px;
     color: #ccc;
+    margin-top: auto;
 }
 .server-item button {
     padding: 8px 12px;
@@ -41,7 +53,10 @@
     border-radius: 6px;
     color: white;
     font-weight: bold;
+    font-size: large;
     cursor: pointer;
+    height: 60px;
+    width: 120px;
 }
 .server-item button:hover {
     background: #3a9cdc;
@@ -116,13 +131,17 @@ function renderServerList(servers) {
     servers.forEach(server => {
         const div = document.createElement("div");
         div.classList.add("server-item");
+        if (server.maxusers == 0) {
+            server.maxusers = "∞";
+        }
 
         div.innerHTML = `
             <div class="server-info">
                 <div class="server-name">${server.name}</div>
-                <div class="server-ip">${server.ip}:${server.port}</div>
+                <div class="server-desc">${server.motd}</div>
+                <div class="server-ip">${server.ip}:${server.port} --- ${server.software}</div>
             </div>
-            <button onclick="connectToServer('${server.ip}', ${server.port})">Bağlan</button>
+            <button onclick="connectToServer('${server.ip}', ${server.port})">Bağlan ${server.currentusers}/${server.maxusers}</button>
         `;
 
         container.appendChild(div);

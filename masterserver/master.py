@@ -5,7 +5,7 @@ import time
 
 port = 4000  # Master server port
 
-servers = {}  # { "ip:port": { "name": "test sunucusu", "info":"günün mesajı!", "ip": "ws nin gördüğü", "port": 25565, "users": 8, "last_heartbeat": 35.7 } }
+servers = {}  # { "ip:port": { "name": "test sunucusu", "info":"günün mesajı!", "ip": "ws nin gördüğü", "port": 25565, "maxusers": 8, "last_heartbeat": 35.7 } }
 
 async def handler(websocket):
 
@@ -23,9 +23,12 @@ async def handler(websocket):
                 key = f"{websocket.remote_address[0]}:{data['port']}"
                 servers[key] = {
                     "name": data["name"],
+                    "motd": data.get("motd", "Açıklama yok."),
+                    "software": data.get("software", "Bilinmiyor"),
                     "ip": websocket.remote_address[0],  # WebSocket bağlantısından IP al
                     "port": data["port"],
-                    "users": data["users"],
+                    "currentusers": data.get("currentusers", 0),
+                    "maxusers": data["maxusers"],
                     "last_heartbeat": time.time()
                 }
                 print(f"✅ Sunucu eklendi/güncellendi: {key}")
@@ -34,18 +37,22 @@ async def handler(websocket):
             elif data.get("type") == "heartbeat":
                 key = f"{websocket.remote_address[0]}:{data['port']}"
                 if key in servers:
-                    servers[key]["users"] = data["users"]  # kullanıcı sayısını güncelle
+                    servers[key]["currentusers"] = data.get("currentusers", servers[key].get("currentusers", 0))
+                    servers[key]["maxusers"] = data["maxusers"]  # kullanıcı sayısını güncelle
                     servers[key]["last_heartbeat"] = time.time()
 
 
-            # İstemci sunucu listesi istiyor
+            # İstemci sunucu listesi istediğinde
             elif data.get("type") == "getServers":
                 server_list = [
                     {
                         "name": s["name"],
+                        "motd": s["motd"],
+                        "software": s["software"],
                         "ip": s["ip"],
                         "port": s["port"],
-                        "users": s["users"]
+                        "currentusers": s.get("currentusers", 0),
+                        "maxusers": s["maxusers"]
                     }
                     for s in servers.values()
                 ]
@@ -70,7 +77,7 @@ async def main():
     asyncio.create_task(cleanup_task())
     async with websockets.serve(handler, "0.0.0.0", port):
         print("🚀 Master Server başlatıldı: ws://0.0.0.0:" + str(port))
-        await asyncio.Future()  # Sonsuza kadar çalışsın
+        await asyncio.Future()
 
 if __name__ == "__main__":
     asyncio.run(main())

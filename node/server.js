@@ -11,7 +11,12 @@ const MASTER_SERVER = "ws://127.0.0.1:4000"; // ne yaptığını bilmiyorsan de�
 
 
 const SERVER_NAME = "Chatozom";
+const SERVER_MOTD = "Resmi Hchat Sohbet Sunucusu [DEV] Refe33d tarafından. muck.";
+const SERVER_SOFTWARE = "HChat vanilla 1.2.0";
+const maxusers = 0; // 0 ise sınırsız kullanıcı
 const SERVER_PORT = 6968;
+var currentusers = 0;
+
 const wss = new WebSocket.Server({ port: SERVER_PORT });
 let masterSocket;
 const adminids = ["231704de-e98e-4ab4-8f75-a0786f13d1df"]; // Admin kullanıcı idleri
@@ -26,8 +31,11 @@ function connectToMaster() {
             masterSocket.send(JSON.stringify({
                 type: "registerServer",
                 name: SERVER_NAME,
+                motd: SERVER_MOTD,
+                software: SERVER_SOFTWARE,
                 port: SERVER_PORT,
-                users: getUserCount()
+                currentusers: currentusers,
+                maxusers: maxusers
             }));
 
             // 10 saniyede bir heartbeat
@@ -36,7 +44,8 @@ function connectToMaster() {
                     masterSocket.send(JSON.stringify({
                         type: "heartbeat",
                         port: SERVER_PORT,
-                        users: getUserCount()
+                        currentusers: currentusers,
+                        maxusers: maxusers
                     }));
                 }
             }, 10000);
@@ -60,7 +69,7 @@ function connectToMaster() {
 }
 
 // Sohbet sunucusundaki kullanıcı sayısını döndür
-function getUserCount() {
+function registeredusers() {
     // Örnek: kendi server.js içindeki user listesine göre döndür
     return readUsers()?.length || 0; 
 }
@@ -75,7 +84,6 @@ function commandhandler(command, socket, username) {
   if (user) {
     const token = user.token;
     isAdmin = adminids.includes(token);
-    console.log(`Kullanıcı: ${username}, Token: ${token}, Admin: ${isAdmin}`);
   }
   const rawData = fs.readFileSync(MESSAGES_FILE, 'utf8');
   const messages = JSON.parse(rawData);
@@ -91,7 +99,7 @@ function commandhandler(command, socket, username) {
           return;
         }
         const messageIndex = messages.findIndex(msg => msg.id === msgId);
-        if (messageIndex !== -1 && (isAdmin || messages[messageIndex].sender === username)) {
+        if (messageIndex !== -1 && (isAdmin )) { // || messages[messageIndex].sender === username
             messages.splice(messageIndex, 1);
             fs.writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2), 'utf8');
             wss.clients.forEach(client => {
@@ -104,7 +112,31 @@ function commandhandler(command, socket, username) {
           });
         }
     }
+    if (command.startsWith("/duzenle")) {
+    const parts = command.split(" ");
+    if (parts.length < 3) {
+        return;
+    }
+    const msgId = parts[1];
+    // Mesaj içeriği: 3. parçadan itibaren hepsini birleştir
+    const newMsg = parts.slice(2).join(" ");
+    const messageIndex = messages.findIndex(msg => msg.id === msgId);
+    if (messageIndex !== -1 && (isAdmin )) { // || messages[messageIndex].sender === username
+        messages[messageIndex].msg = newMsg; // Mesajı güncelle
+        fs.writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2), 'utf8');
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                    type: "msg-duzenle",
+                    msgid: msgId,
+                    newmsg: newMsg
+                }));
+            }
+        });
+    }
 }
+}
+
 
 
 
@@ -155,9 +187,19 @@ function saveMessage(id, sender, msg, time) {
   }
 }
 
+
 wss.on('connection', socket => {
   let username = null;
   let usertoken = null;
+  currentusers = wss.clients.size;
+  if (maxusers != 0 && currentusers >= maxusers) {
+    socket.close(1008, "Sunucu dolu!");
+    console.warn("❌ Maksimum kullanıcı sayısına ulaşıldı, yeni bağlantı reddedildi");
+    return;
+  }
+  socket.on('close', () => {
+  currentusers = wss.clients.size;
+});
 
   socket.on('message', message => {
     let data;
