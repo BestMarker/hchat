@@ -1,27 +1,35 @@
 const { v4: uuidv4 } = require('uuid');
 const WebSocket = require('ws');
+const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
 const { server } = require('websocket');
+const bcrypt = require('bcrypt'); // En üste ekle
 
 const MESSAGES_FILE = path.join(__dirname, 'messages.json');
 const USERS_FILE = path.join(__dirname, 'users.json');
 
-const MASTER_SERVER = "ws://127.0.0.1:4000"; // ne yaptığını bilmiyorsan değiştirme!
 
+dotenv.config();
 
-const SERVER_NAME = "Chatozom";
-const SERVER_MOTD = "Resmi Hchat Sohbet Sunucusu [DEV] Refe33d tarafından. muck.";
-const SERVER_SOFTWARE = "HChat vanilla 1.2.0";
-const maxusers = 0; // 0 ise sınırsız kullanıcı
-const SERVER_PORT = 6968;
+const SERVER_NAME = process.env.SERVER_NAME || "Sohbet sunucusu";
+const SERVER_MOTD = process.env.SERVER_MOTD || "HChat sunucusuna hoş geldiniz!";
+const SERVER_SOFTWARE = "HChat vanilla 1.2.1";
+const maxusers = process.env.MAXUERS || 8 ; // 0 ise sınırsız kullanıcı
+const SERVER_PORT = process.env.SERVER_PORT || 6968;
 var currentusers = 0;
 
 const wss = new WebSocket.Server({ port: SERVER_PORT });
 let masterSocket;
-const adminids = ["231704de-e98e-4ab4-8f75-a0786f13d1df"]; // Admin kullanıcı idleri
+const adminids = process.env.ADMIN_IDS; // Admin kullanıcı idleri
+const bannedusers = process.env.BANNED_IPS; // Yasaklı kullanıcı IP'leri
 function connectToMaster() {
+    if (process.env.ISPUBLIC == 0) {
+        console.log("Sunucu gizli modda, master server'a bağlanılmıyor.");
+        return;
+    }
     try {
+        const MASTER_SERVER = process.env.MASTER_SERVER || "ws://127.0.0.1:4000";
         masterSocket = new WebSocket(MASTER_SERVER);
 
         masterSocket.on('open', () => {
@@ -66,12 +74,6 @@ function connectToMaster() {
 
     }
 
-}
-
-// Sohbet sunucusundaki kullanıcı sayısını döndür
-function registeredusers() {
-    // Örnek: kendi server.js içindeki user listesine göre döndür
-    return readUsers()?.length || 0; 
 }
 
 connectToMaster();
@@ -156,7 +158,6 @@ function readUsers() {
 function writeUsers(userList) {
   try {
     fs.writeFileSync(USERS_FILE, JSON.stringify(userList, null, 2), 'utf8');
-    console.log("📁 Kullanıcılar dosyaya yazıldı:", userList);
   } catch (err) {
     console.error("Kullanıcıları yazarken hata:", err);
   }
@@ -192,11 +193,7 @@ wss.on('connection', socket => {
   let username = null;
   let usertoken = null;
   currentusers = wss.clients.size;
-  if (maxusers != 0 && currentusers >= maxusers) {
-    socket.close(1008, "Sunucu dolu!");
-    console.warn("❌ Maksimum kullanıcı sayısına ulaşıldı, yeni bağlantı reddedildi");
-    return;
-  }
+
   socket.on('close', () => {
   currentusers = wss.clients.size;
 });
@@ -237,27 +234,47 @@ wss.on('connection', socket => {
         break;
 
       case 'login':
+          if (maxusers != 0 && currentusers >= maxusers) {
+            socket.send(JSON.stringify({ type: 'login-no', hata: 'Sunucu Dolu :(' }));
+            console.warn("❌ Maksimum kullanıcı sayısına ulaşıldı, login reddedildi");
+            return;
+          }
+          if (bannedusers.includes(socket._socket.remoteAddress)) {
+            socket.send(JSON.stringify({ type: 'login-no', hata: 'Banlısınız!' }));
+            return;
+          }
         username = data.username?.trim();
-        if (!username) {
-          socket.send(JSON.stringify({ type: 'login-no', hata: 'Geçersiz kullanıcı adı' }));
-          return;
+        const password = data.password?.trim();
+        if (!username || !password) {
+            socket.send(JSON.stringify({ type: 'login-no', hata: 'Geçersiz kullanıcı adı veya şifre' }));
+            return;
         }
 
         const users = readUsers();
         let existingUser = users.find(u => u.username === username);
 
         if (existingUser) {
-          // Kullanıcı zaten kayıtlı: Token'ını geri gönder
-          usertoken = existingUser.token;
-          socket.send(JSON.stringify({ type: 'login-tmam', isim: username, token: usertoken, servername: SERVER_NAME }));
+            // Şifreyi doğrula
+            bcrypt.compare(password, existingUser.password, (err, result) => {
+                if (result) {
+                    usertoken = existingUser.token;
+                    socket.send(JSON.stringify({ type: 'login-tmam', isim: username, token: usertoken, servername: SERVER_NAME }));
+                } else {
+                    socket.send(JSON.stringify({ type: 'login-no', hata: 'Şifre yanlış' }));
+                }
+            });
         } else {
-          // Yeni kullanıcı: Kayıt et
-          usertoken = uuidv4();
-          users.push({ username, token: usertoken });
-          writeUsers(users);
-
-          socket.send(JSON.stringify({ type: 'login-tmam', isim: username, token: usertoken, servername: SERVER_NAME }));
-          console.log("🆕 Yeni kullanıcı eklendi:", username, usertoken);
+            // Yeni kullanıcı: Şifreyi hash’le ve kaydet
+            bcrypt.hash(password, 10, (err, hash) => {
+                if (err) {
+                    socket.send(JSON.stringify({ type: 'login-no', hata: 'Kayıt hatası' }));
+                    return;
+                }
+                usertoken = uuidv4();
+                users.push({ username, password: hash, token: usertoken });
+                writeUsers(users);
+                socket.send(JSON.stringify({ type: 'login-tmam', isim: username, token: usertoken, servername: SERVER_NAME }));
+            });
         }
         break;
 

@@ -68,12 +68,12 @@ function connectWithToken() {
     };
 }
 
-function login(userisim) {
+function login(userisim, userpass) {
     const serverAddress = sessionStorage.getItem("chatServer") || "127.0.0.1:3000";
     ws = new WebSocket(`ws://${serverAddress}`);
     ws.onmessage = handleMessage;
     ws.onopen = () => {
-        ws.send(JSON.stringify({ type: 'login', username: userisim }));
+        ws.send(JSON.stringify({ type: 'login', username: userisim , password: userpass}));
     };
 }
 
