@@ -69,7 +69,7 @@ function connectWithToken() {
 }
 
 function login(userisim, userpass) {
-    const serverAddress = sessionStorage.getItem("chatServer") || "127.0.0.1:3000";
+    const serverAddress = sessionStorage.getItem("chatServer") || "127.0.0.1:6968";
     ws = new WebSocket(`ws://${serverAddress}`);
     ws.onmessage = handleMessage;
     ws.onopen = () => {

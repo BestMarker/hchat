@@ -4,7 +4,8 @@ const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
 const { server } = require('websocket');
-const bcrypt = require('bcrypt'); // En üste ekle
+const bcrypt = require('bcrypt');
+const { features } = require('process');
 
 const MESSAGES_FILE = path.join(__dirname, 'messages.json');
 const USERS_FILE = path.join(__dirname, 'users.json');
@@ -14,15 +15,16 @@ dotenv.config();
 
 const SERVER_NAME = process.env.SERVER_NAME || "Sohbet sunucusu";
 const SERVER_MOTD = process.env.SERVER_MOTD || "HChat sunucusuna hoş geldiniz!";
-const SERVER_SOFTWARE = "HChat vanilla 1.2.1";
+const SERVER_SOFTWARE = "HChat vanilla 1.2.2";
+const FEATURELIST = ["Kayıt", "Çevrimiçi", "Şifreleme"];
 const maxusers = process.env.MAXUERS || 8 ; // 0 ise sınırsız kullanıcı
 const SERVER_PORT = process.env.SERVER_PORT || 6968;
 var currentusers = 0;
 
 const wss = new WebSocket.Server({ port: SERVER_PORT });
 let masterSocket;
-const adminids = process.env.ADMIN_IDS; // Admin kullanıcı idleri
-const bannedusers = process.env.BANNED_IPS; // Yasaklı kullanıcı IP'leri
+const adminids = process.env.ADMIN_IDS;
+const bannedusers = process.env.BANNED_IPS;
 function connectToMaster() {
     if (process.env.ISPUBLIC == 0) {
         console.log("Sunucu gizli modda, master server'a bağlanılmıyor.");
@@ -43,7 +45,8 @@ function connectToMaster() {
                 software: SERVER_SOFTWARE,
                 port: SERVER_PORT,
                 currentusers: currentusers,
-                maxusers: maxusers
+                maxusers: maxusers,
+                features: FEATURELIST
             }));
 
             // 10 saniyede bir heartbeat
@@ -101,7 +104,7 @@ function commandhandler(command, socket, username) {
           return;
         }
         const messageIndex = messages.findIndex(msg => msg.id === msgId);
-        if (messageIndex !== -1 && (isAdmin )) { // || messages[messageIndex].sender === username
+        if (messageIndex !== -1 && (isAdmin )) {
             messages.splice(messageIndex, 1);
             fs.writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2), 'utf8');
             wss.clients.forEach(client => {
@@ -120,11 +123,10 @@ function commandhandler(command, socket, username) {
         return;
     }
     const msgId = parts[1];
-    // Mesaj içeriği: 3. parçadan itibaren hepsini birleştir
     const newMsg = parts.slice(2).join(" ");
     const messageIndex = messages.findIndex(msg => msg.id === msgId);
-    if (messageIndex !== -1 && (isAdmin )) { // || messages[messageIndex].sender === username
-        messages[messageIndex].msg = newMsg; // Mesajı güncelle
+    if (messageIndex !== -1 && (isAdmin )) {
+        messages[messageIndex].msg = newMsg; 
         fs.writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2), 'utf8');
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {

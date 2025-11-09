@@ -5,7 +5,7 @@ import time
 
 port = 4000  # Master server port
 
-servers = {}  # { "ip:port": { "name": "test sunucusu", "info":"günün mesajı!", "ip": "ws nin gördüğü", "port": 25565, "maxusers": 8, "last_heartbeat": 35.7 } }
+servers = {}  # { "ip:port": { "name": "test sunucusu", "info":"günün mesajı!", "ip": "ws nin gördüğü", "port": 25565, "maxusers": 8, "last_heartbeat": 35.7, "features": ["Çevrimiçi", "Herkese Açık", "Şifreleme"]} }
 
 async def handler(websocket):
 
@@ -29,6 +29,7 @@ async def handler(websocket):
                     "port": data["port"],
                     "currentusers": data.get("currentusers", 0),
                     "maxusers": data["maxusers"],
+                    "features": data.get("features", []),
                     "last_heartbeat": time.time()
                 }
                 print(f"✅ Sunucu eklendi/güncellendi: {key}")
@@ -52,10 +53,12 @@ async def handler(websocket):
                         "ip": s["ip"],
                         "port": s["port"],
                         "currentusers": s.get("currentusers", 0),
-                        "maxusers": s["maxusers"]
+                        "maxusers": s["maxusers"],
+                        "features": s.get("features", [])
                     }
                     for s in servers.values()
                 ]
+
                 await websocket.send(json.dumps({
                     "type": "serverList",
                     "servers": server_list
