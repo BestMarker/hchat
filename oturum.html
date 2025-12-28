@@ -9,7 +9,8 @@
     <div class="login-box">
         <h1>💬 Sohbete Giriş</h1>
         <input type="text" id="username" placeholder="Kullanıcı adınız">
-        <button onclick="login(document.getElementById('username').value)">Giriş Yap</button>
+        <input type="text" id="password" placeholder="Şifreniz">
+        <button onclick="login(document.getElementById('username').value, document.getElementById('password').value)">Giriş Yap</button>
         <p id="asf" class="error"></p>
     </div>
     <script src="helper.js"></script>

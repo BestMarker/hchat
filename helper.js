@@ -1,5 +1,6 @@
 let ws;
-
+const versaion = "0.2.0";
+const software = "HChat vanilla 1.2.0";
 // Tarayıcı bildirim izni
 Notification.requestPermission();
 
@@ -38,6 +39,17 @@ function delmsg() {
         }));
     }
 }
+function editmsg() {
+    document.getElementById("context-menu").style.display = "none";
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+            type: 'sendmsg',
+            mytoken: sessionStorage.getItem("token"),
+            msgdata: "/duzenle " + secilenid + " " + document.getElementById("mesajInput").value
+        }));
+    }
+    document.getElementById('mesajInput').value='';
+}
 
 function reset() {
     sessionStorage.removeItem("chatServer");
@@ -56,12 +68,12 @@ function connectWithToken() {
     };
 }
 
-function login(userisim) {
-    const serverAddress = sessionStorage.getItem("chatServer") || "127.0.0.1:3000";
+function login(userisim, userpass) {
+    const serverAddress = sessionStorage.getItem("chatServer") || "127.0.0.1:6968";
     ws = new WebSocket(`ws://${serverAddress}`);
     ws.onmessage = handleMessage;
     ws.onopen = () => {
-        ws.send(JSON.stringify({ type: 'login', username: userisim }));
+        ws.send(JSON.stringify({ type: 'login', username: userisim , password: userpass}));
     };
 }
 
@@ -133,13 +145,21 @@ function handleMessage(msg) {
 
         case 'msg-sil':
             silinecek = data.msgid;
-            console.log("Silinecek mesaj ID:", silinecek);
         
             document.getElementById(silinecek).parentElement.remove();
+            break;
+        case 'msg-duzenle':
+            degsien = data.msgid;
+            document.getElementById(degsien).children[1].innerText = data.newmsg;
             break;
 
         case 'login-no':
             document.getElementById("asf").innerHTML = data.hata;
+            break;
+
+        case 'kick':
+            alert(data.hata);
+            reset();
             break;
 
         case 'pong':

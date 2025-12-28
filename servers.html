@@ -6,12 +6,14 @@
 <link rel="stylesheet" href="style.css">
 <style>
 .server-list {
-    max-width: 500px;
+    width: 40%;
+    height: 20%;
     margin: 50px auto;
     background: #1e1e1e;
     padding: 20px;
     border-radius: 12px;
     box-shadow: 0 0 10px #000;
+
 }
 .server-item {
     display: flex;
@@ -21,18 +23,30 @@
     padding: 10px;
     border-radius: 8px;
     margin-bottom: 10px;
+    height: 100px;
+}
+.server-desc {
+    font-size: 18px;
+    color: #b3e5fc;
+    margin: 6px 0;
 }
 .server-info {
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    width: 70%;
 }
 .server-name {
     font-weight: bold;
+    font-size: x-large;
     color: #4cafef;
+    margin-bottom: 2px;
 }
 .server-ip {
     font-size: 12px;
     color: #ccc;
+    margin-top: auto;
 }
 .server-item button {
     padding: 8px 12px;
@@ -41,14 +55,18 @@
     border-radius: 6px;
     color: white;
     font-weight: bold;
+    font-size: large;
     cursor: pointer;
+    height: 60px;
+    width: 100%;
+
 }
 .server-item button:hover {
     background: #3a9cdc;
 }
 
 #ipgirisi, #portgirisi {
-    width: 38%;
+    width: 36%;
     padding: 8px;
     margin-top: 10px;
     border-radius: 6px;
@@ -62,6 +80,27 @@
     color: white;
     font-weight: bold;
     cursor: pointer;
+    width: 21.5%;
+}
+.ozellikler {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    width: 200px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.ozellik {
+    background: #333;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #ccc;
+    white-space: nowrap; 
+}
+.ozelsunucu {
+    white-space: nowrap;
+    width: 100%;
 }
 
 </style>
@@ -73,6 +112,7 @@
     </div>
 
 <script>
+const version = "hchat vanilla 1.2.2";
 // Master server bilgisi (sabit)
 const MASTER_SERVER = "ws://192.168.1.5:4000"; // Örnek IP ve port
 let ws = new WebSocket(MASTER_SERVER);
@@ -91,10 +131,10 @@ ws.onmessage = (msg) => {
     }
 };
     const ozelsunucu = document.createElement("div");
-    ozelsunucu.innerHTML = `
+    ozelsunucu.innerHTML = ` <div class=ozelsunucu>
         <input type="text" id="ipgirisi" placeholder="Sunucu IP'si">
 <input type="text" id="portgirisi" placeholder="Sunucu portu"> <button class="digerkatil" onclick="connectToServer(0,0)">Bağlan</button>
-    `;
+    </div>`;
 ws.onerror = (err) => {
     const container = document.getElementById("serverContainer");
 
@@ -116,14 +156,24 @@ function renderServerList(servers) {
     servers.forEach(server => {
         const div = document.createElement("div");
         div.classList.add("server-item");
-
+        if (server.maxusers == 0) {
+            server.maxusers = "∞";
+        }
+        ozelliklistesi = "";
+        server.features.forEach(ozel => {
+            ozelliklistesi += `<div class="ozellik">${ozel}</div>`;
+        });
         div.innerHTML = `
             <div class="server-info">
                 <div class="server-name">${server.name}</div>
-                <div class="server-ip">${server.ip}:${server.port}</div>
+                <div class="server-desc">${server.motd}</div>
+                <div class="server-ip">${server.ip}:${server.port} --- ${server.software}</div>
             </div>
-            <button onclick="connectToServer('${server.ip}', ${server.port})">Bağlan</button>
-        `;
+            <div>
+                <div class="ozellikler">${ozelliklistesi}</div>
+                
+            <button onclick="connectToServer('${server.ip}', ${server.port})">Bağlan ${server.currentusers}/${server.maxusers}</button>
+       </div> `;
 
         container.appendChild(div);
     });
@@ -145,7 +195,6 @@ function connectToServer(ip, port) {
     }
     const serverAddress = `${ip}:${port}`;
     sessionStorage.setItem("chatServer", serverAddress);
-    alert(`Bağlantı için sunucu seçildi: ${serverAddress}`);
     window.location.href = "index.html"; // Sohbet sayfasına yönlendir
 }
 </script>
