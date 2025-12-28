@@ -69,7 +69,7 @@ function connectWithToken() {
 }
 
 function login(userisim, userpass) {
-    const serverAddress = sessionStorage.getItem("chatServer") || "127.0.0.1:3000";
+    const serverAddress = sessionStorage.getItem("chatServer") || "127.0.0.1:6968";
     ws = new WebSocket(`ws://${serverAddress}`);
     ws.onmessage = handleMessage;
     ws.onopen = () => {
@@ -155,6 +155,11 @@ function handleMessage(msg) {
 
         case 'login-no':
             document.getElementById("asf").innerHTML = data.hata;
+            break;
+
+        case 'kick':
+            alert(data.hata);
+            reset();
             break;
 
         case 'pong':
